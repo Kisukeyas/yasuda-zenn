@@ -51,3 +51,5 @@ DOMツリーはPCのブラウザ用のメモリ空間の上に構築されてい
 
 https://web.dev/howbrowserswork/
 
+https://milestone-of-se.nesuke.com/sv-basic/web-tech-basic/html-javascript-dom-parse-rendering/
+
