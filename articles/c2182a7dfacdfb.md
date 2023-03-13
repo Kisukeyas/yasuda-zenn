@@ -1,9 +1,9 @@
 ---
-title: "hogehoge"
+title: "useReducerについて（React)"
 emoji: "✨"
 type: "tech" # tech: 技術記事 / idea: アイデア
-topics: []
-published: false
+topics: ["react", "js"]
+published: true
 ---
 
 ## Reducer とは
@@ -85,11 +85,143 @@ function handleDeleteTask(taskId) {
 
 `type`によって実行する処理を切り分けている。
 処理内容を書いていないので、コード量は減らすことができる
-ちなみに、dispatch関数にわたすオブジェクトは、`action object`と呼ばれる
+ちなみに、dispatch 関数にわたすオブジェクトは、`action object`と呼ばれる
 
-### 
-この例で状態設定ロジックをイベント ハンドラーからレデューサー関数に移動するには、次のことを行います。
+### 2. 特定の状態とアクションの次の状態を返すレデューサー関数を作成
 
-1. 現在の状態 ( tasks) を最初の引数として宣言します。
-2. action2 番目の引数としてオブジェクトを宣言します。
-レデューサーから次の状態を返します(React が状態を設定します)。
+状態設定ロジックをイベント ハンドラーからレデューサー関数に移動するには、次のことを行います。
+
+1. 現在の状態 (tasks) を最初の引数として宣言します。
+2. 2 番目の引数として`actionオブジェクト`を宣言します。
+3. レデューサーから次の状態を返します(React が状態を設定します)。
+
+```jsx
+function tasksReducer(tasks, action) {
+  switch (action.type) {
+    case "added": {
+      return [
+        ...tasks,
+        {
+          id: action.id,
+          text: action.text,
+          done: false,
+        },
+      ];
+    }
+    case "changed": {
+      return tasks.map((t) => {
+        if (t.id === action.task.id) {
+          return action.task;
+        } else {
+          return t;
+        }
+      });
+    }
+    case "deleted": {
+      return tasks.filter((t) => t.id !== action.id);
+    }
+    default: {
+      throw Error("Unknown action: " + action.type);
+    }
+  }
+}
+```
+
+### 3. コンポーネントのレデューサーを使用
+
+```jsx
+const [tasks, dispatch] = useReducer(tasksReducer, initialTasks);
+```
+
+useReducer フックは useState に似ています。初期状態を渡す必要があり、ステートフルな値と状態を設定する方法 (この場合はディスパッチ関数) を返します。しかし、それは少し違います。
+
+useReducer でコンポーネントを描き直すと 状態変数変更処理部・イベントハンドラー部が分離されて、コードの可視性が上がる
+
+```jsx
+import { useReducer } from "react";
+import AddTask from "./AddTask.js";
+import TaskList from "./TaskList.js";
+
+export default function TaskApp() {
+  const [tasks, dispatch] = useReducer(tasksReducer, initialTasks);
+
+  function handleAddTask(text) {
+    dispatch({
+      type: "added",
+      id: nextId++,
+      text: text,
+    });
+  }
+
+  function handleChangeTask(task) {
+    dispatch({
+      type: "changed",
+      task: task,
+    });
+  }
+
+  function handleDeleteTask(taskId) {
+    dispatch({
+      type: "deleted",
+      id: taskId,
+    });
+  }
+
+  return (
+    <>
+      <h1>Prague itinerary</h1>
+      <AddTask onAddTask={handleAddTask} />
+      <TaskList
+        tasks={tasks}
+        onChangeTask={handleChangeTask}
+        onDeleteTask={handleDeleteTask}
+      />
+    </>
+  );
+}
+
+function tasksReducer(tasks, action) {
+  switch (action.type) {
+    case "added": {
+      return [
+        ...tasks,
+        {
+          id: action.id,
+          text: action.text,
+          done: false,
+        },
+      ];
+    }
+    case "changed": {
+      return tasks.map((t) => {
+        if (t.id === action.task.id) {
+          return action.task;
+        } else {
+          return t;
+        }
+      });
+    }
+    case "deleted": {
+      return tasks.filter((t) => t.id !== action.id);
+    }
+    default: {
+      throw Error("Unknown action: " + action.type);
+    }
+  }
+}
+
+let nextId = 3;
+const initialTasks = [
+  { id: 0, text: "Visit Kafka Museum", done: true },
+  { id: 1, text: "Watch a puppet show", done: false },
+  { id: 2, text: "Lennon Wall pic", done: false },
+];
+```
+
+このように懸念事項を分離すると、コンポーネント ロジックが読みやすくなります。現在、イベント ハンドラーはアクションをディスパッチすることによって何が起こったかのみを指定し、リデューサー関数はそれらに応答して状態がどのように更新されるかを決定します。
+
+## 最後に
+
+useReducer の使い方についてみていきました。
+useState でも同じことは実装できますが、ロジック部分の分離など、メリットもあります。
+まずは、useState で書いてみて、状態を変更するロジックが複数出てきた時に、useReducer の使用を検討してみてはいかがでしょうか？
